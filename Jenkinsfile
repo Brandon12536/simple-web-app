@@ -176,14 +176,32 @@ pipeline {
                     // Crear directorio para resultados de pruebas si no existe
                     bat 'if not exist test-results mkdir test-results'
                     
+                    // Mostrar la estructura de directorios para depuración
+                    bat 'dir /s'
+                    
+                    // Limpiar resultados anteriores
+                    bat 'if exist test-results\junit.xml del test-results\junit.xml'
+                    
                     // Ejecutar pruebas con salida JUnit
-                    bat 'npx jest --ci --testResultsProcessor="jest-junit" --reporters=default --reporters=jest-junit'
+                    bat 'npx jest --ci --testResultsProcessor="jest-junit" --reporters=default --reporters=jest-junit --outputFile=test-results/junit.xml --testResultsProcessorOptions.outputFile=test-results/junit.xml'
+                    
+                    // Verificar si se creó el archivo de resultados
+                    bat 'if exist test-results\junit.xml (echo Archivo de resultados encontrado) else (echo ERROR: No se generó el archivo de resultados && exit 1)'
                 }
             }
             
             // Archivar resultados de pruebas
             post {
                 always {
+                    // Mostrar el contenido del archivo de resultados para depuración
+                    script {
+                        try {
+                            bat 'type test-results\junit.xml'
+                        } catch (e) {
+                            echo 'No se pudo mostrar el contenido del archivo de resultados: ' + e.message
+                        }
+                    }
+                    
                     junit 'test-results/junit.xml'
                     publishHTML(target: [
                         allowMissing: true,
