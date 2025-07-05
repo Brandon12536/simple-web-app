@@ -1,10 +1,27 @@
+def BUILD_TIMESTAMP = new Date().format('yyyyMMdd-HHmmss')
+
+def runStage(stageName, stageClosure) {
+    stage(stageName) {
+        echo "[${BUILD_TIMESTAMP}] Iniciando etapa: ${stageName}"
+        try {
+            stageClosure()
+            echo "[${BUILD_TIMESTAMP}] Etapa completada: ${stageName}"
+        } catch (e) {
+            echo "[ERROR] Fallo en etapa ${stageName}: ${e.message}"
+            throw e
+        }
+    }
+}
+
 pipeline {
     agent any
     
-    // Forzar ejecución aunque no haya cambios
     options {
         skipDefaultCheckout(false)
         disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+        timeout(time: 30, unit: 'MINUTES')
+        timestamps()
     }
     
     tools {
@@ -21,6 +38,14 @@ pipeline {
     }
     
     stages {
+        stage('Inicio') {
+            steps {
+                echo "[${BUILD_TIMESTAMP}] Iniciando pipeline forzado..."
+                echo "[${BUILD_TIMESTAMP}] Build #${env.BUILD_NUMBER}"
+                bat 'echo %DATE% %TIME%'
+            }
+        }
+        
         // Etapa 1: Verificación del entorno
         stage('Verificar Entorno') {
             steps {
@@ -34,7 +59,17 @@ pipeline {
             }
         }
         
-        // Etapa 2: Obtener el código fuente
+        // Etapa 2: Limpiar workspace
+        stage('Limpiar') {
+            steps {
+                echo 'Limpiando workspace...'
+                cleanWs()
+                bat 'echo Workspace limpio'
+                bat 'dir'
+            }
+        }
+        
+        // Etapa 3: Obtener el código fuente
         stage('Checkout') {
             steps {
                 echo 'Obteniendo código fuente...'
@@ -65,7 +100,7 @@ pipeline {
             }
         }
         
-        // Etapa 2: Instalar dependencias
+        // Etapa 4: Instalar dependencias
         stage('Instalar Dependencias') {
             steps {
                 echo 'Instalando dependencias...'
@@ -77,7 +112,7 @@ pipeline {
             }
         }
         
-        // Etapa 3: Ejecutar pruebas unitarias
+        // Etapa 5: Ejecutar pruebas unitarias
         stage('Pruebas Unitarias') {
             steps {
                 echo 'Ejecutando pruebas unitarias...'
