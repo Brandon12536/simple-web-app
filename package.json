@@ -4,7 +4,7 @@
   "description": "Aplicación web de ejemplo para demostrar un pipeline de Jenkins",
   "main": "js/app.js",
   "scripts": {
-    "test": "jest",
+    "test": "jest --config=jest.config.js",
     "build": "echo 'Construyendo la aplicación...' && mkdir -p dist && cp -r css/ dist/ && cp -r js/ dist/ && cp index.html dist/",
     "start": "http-server -p 8080"
   },
