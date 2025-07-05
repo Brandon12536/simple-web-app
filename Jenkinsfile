@@ -173,14 +173,18 @@ pipeline {
             steps {
                 echo 'Ejecutando pruebas unitarias...'
                 script {
-                    bat 'npm test'
+                    // Crear directorio para resultados de pruebas si no existe
+                    bat 'if not exist test-results mkdir test-results'
+                    
+                    // Ejecutar pruebas con salida JUnit
+                    bat 'npx jest --ci --testResultsProcessor="jest-junit" --reporters=default --reporters=jest-junit'
                 }
             }
             
             // Archivar resultados de pruebas
             post {
                 always {
-                    junit 'test-results.xml'
+                    junit 'test-results/junit.xml'
                     publishHTML(target: [
                         allowMissing: true,
                         alwaysLinkToLastBuild: true,
