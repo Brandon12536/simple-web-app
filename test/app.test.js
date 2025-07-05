@@ -1,7 +1,5 @@
-// Función de prueba
-export function sumar(a, b) {
-    return a + b;
-}
+// Importar la función a probar
+const { sumar } = require('../js/app');
 
 // Grupo de pruebas para la función sumar
 describe('Función sumar', () => {

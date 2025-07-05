@@ -13,6 +13,9 @@ def runStage(stageName, stageClosure) {
     }
 }
 
+// Forzar ejecución completa
+def FORCE_RUN = true
+
 pipeline {
     agent any
     
@@ -22,6 +25,15 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '5'))
         timeout(time: 30, unit: 'MINUTES')
         timestamps()
+        // Deshabilitar el comportamiento de "Sin cambios"
+        skipStagesAfterUnstable()
+    }
+    
+    // Forzar ejecución aunque no haya cambios
+    triggers {
+        // Este trigger hará que el pipeline se ejecute inmediatamente
+        // y también cuando se detecten cambios en el repositorio
+        pollSCM('* * * * *')
     }
     
     tools {
@@ -62,10 +74,27 @@ pipeline {
         // Etapa 2: Limpiar workspace
         stage('Limpiar') {
             steps {
-                echo 'Limpiando workspace...'
-                cleanWs()
-                bat 'echo Workspace limpio'
-                bat 'dir'
+                echo '=== LIMPIANDO WORKSPACE ==='
+                script {
+                    // Forzar limpieza completa
+                    cleanWs(cleanWhenAborted: true,
+                           cleanWhenFailure: true,
+                           cleanWhenNotBuilt: true,
+                           cleanWhenSuccess: true,
+                           cleanWhenUnstable: true,
+                           deleteDirs: true)
+                    
+                    // Verificar que el workspace está vacío
+                    bat '''
+                        @echo off
+                        echo Directorio actual: %CD%
+                        echo Contenido del directorio:
+                        dir /a /w
+                        echo.
+                        echo Espacio en disco:
+                        wmic logicaldisk get size,freespace,caption
+                    '''
+                }
             }
         }
         
@@ -93,9 +122,18 @@ pipeline {
                     submoduleCfg: []
                 ])
                 
-                // Verificar rama actual
-                bat 'git branch -a'
-                bat 'git status'
+                // Verificar rama y estado de git
+                bat '''
+                    @echo off
+                    echo === INFORMACIÓN DE GIT ===
+                    git --version
+                    git branch -a
+                    git status
+                    git log -1 --oneline
+                    echo.
+                    echo === ARCHIVOS DESCARGADOS ===
+                    dir /s /b /a
+                '''
                 
                 // Verificar el contenido del directorio
                 echo '=== CONTENIDO DEL DIRECTORIO ==='
@@ -112,11 +150,20 @@ pipeline {
         // Etapa 4: Instalar dependencias
         stage('Instalar Dependencias') {
             steps {
-                echo 'Instalando dependencias...'
+                echo '=== INSTALANDO DEPENDENCIAS ==='
                 script {
-                    bat 'node --version'
-                    bat 'npm --version'
-                    bat 'npm install'
+                    bat '''
+                        @echo off
+                        echo Versiones del entorno:
+                        node --version
+                        npm --version
+                        
+                        echo Instalando dependencias...
+                        npm ci --no-audit --prefer-offline
+                        
+                        echo Dependencias instaladas:
+                        npm list --depth=0
+                    '''
                 }
             }
         }
