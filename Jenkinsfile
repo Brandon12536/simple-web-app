@@ -73,20 +73,29 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Obteniendo código fuente...'
+                // Forzar checkout de la rama main
                 checkout([
                     $class: 'GitSCM',
                     branches: [[name: 'refs/heads/main']],
                     userRemoteConfigs: [[
                         url: 'https://github.com/Brandon12536/simple-web-app.git',
+                        refspec: '+refs/heads/main:refs/remotes/origin/main',
                         credentialsId: ''
                     ]],
                     extensions: [[
                         $class: 'CleanBeforeCheckout',
                         deleteUntrackedNestedRepositories: true
+                    ], [
+                        $class: 'LocalBranch',
+                        localBranch: 'main'
                     ]],
                     doGenerateSubmoduleConfigurations: false,
                     submoduleCfg: []
                 ])
+                
+                // Verificar rama actual
+                bat 'git branch -a'
+                bat 'git status'
                 
                 // Verificar el contenido del directorio
                 echo '=== CONTENIDO DEL DIRECTORIO ==='
