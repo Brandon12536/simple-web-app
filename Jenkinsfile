@@ -2,19 +2,16 @@ pipeline {
     agent any
     
     tools {
-        // Asegúrate de que el nombre coincida con la configuración de Jenkins
-        nodejs 'NodeJS' 
+        nodejs 'NodeJS' // Asegúrate que coincida con el nombre en Jenkins
     }
     
     environment {
-        // Variables de entorno
+        // Configuración para Windows
+        IS_WINDOWS = true
+        
+        // Variables de la aplicación
         APP_NAME = 'simple-web-app'
         VERSION = '1.0.0'
-        DOCKER_IMAGE = "${env.APP_NAME}:${env.BUILD_NUMBER}"
-        
-        // Configuración de rutas (ajusta según tu sistema operativo)
-        IS_WINDOWS = isUnix() ? false : true
-        SHELL = env.IS_WINDOWS ? 'cmd /c' : 'sh -c'
     }
     
     stages {
@@ -24,15 +21,19 @@ pipeline {
                 echo 'Obteniendo código fuente...'
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: '*/main']],
+                    branches: [[name: 'refs/heads/main']],  // Asegura que use main
                     userRemoteConfigs: [[
-                        url: 'https://github.com/tu-usuario/simple-web-app.git',
-                        credentialsId: '' // Agrega tu ID de credenciales si es necesario
+                        url: 'https://github.com/Brandon12536/simple-web-app.git'
                     ]],
                     extensions: [[
                         $class: 'CleanBeforeCheckout'
-                    ]]
+                    ]],
+                    doGenerateSubmoduleConfigurations: false,
+                    submoduleCfg: []
                 ])
+                
+                // Verificar el contenido del directorio
+                bat 'dir /w'
             }
         }
         
@@ -41,11 +42,9 @@ pipeline {
             steps {
                 echo 'Instalando dependencias...'
                 script {
-                    if (env.IS_WINDOWS) {
-                        bat 'npm install'
-                    } else {
-                        sh 'npm install'
-                    }
+                    bat 'node --version'
+                    bat 'npm --version'
+                    bat 'npm install'
                 }
             }
         }
@@ -54,7 +53,9 @@ pipeline {
         stage('Pruebas Unitarias') {
             steps {
                 echo 'Ejecutando pruebas unitarias...'
-                sh 'npm test -- --coverage'
+                script {
+                    bat 'npm test'
+                }
             }
             
             // Archivar resultados de pruebas
