@@ -1,6 +1,12 @@
 pipeline {
     agent any
     
+    // Forzar ejecución aunque no haya cambios
+    options {
+        skipDefaultCheckout(false)
+        disableConcurrentBuilds()
+    }
+    
     tools {
         nodejs 'NodeJS' // Asegúrate que coincida con el nombre en Jenkins
     }
@@ -15,25 +21,47 @@ pipeline {
     }
     
     stages {
-        // Etapa 1: Obtener el código fuente
+        // Etapa 1: Verificación del entorno
+        stage('Verificar Entorno') {
+            steps {
+                echo '=== INFORMACIÓN DEL SISTEMA ==='
+                bat 'echo %USERNAME% en %COMPUTERNAME%'
+                bat 'ver'
+                bat 'node --version'
+                bat 'npm --version'
+                bat 'git --version'
+                bat 'echo %PATH%'
+            }
+        }
+        
+        // Etapa 2: Obtener el código fuente
         stage('Checkout') {
             steps {
                 echo 'Obteniendo código fuente...'
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: 'refs/heads/main']],  // Asegura que use main
+                    branches: [[name: 'refs/heads/main']],
                     userRemoteConfigs: [[
-                        url: 'https://github.com/Brandon12536/simple-web-app.git'
+                        url: 'https://github.com/Brandon12536/simple-web-app.git',
+                        credentialsId: ''
                     ]],
                     extensions: [[
-                        $class: 'CleanBeforeCheckout'
+                        $class: 'CleanBeforeCheckout',
+                        deleteUntrackedNestedRepositories: true
                     ]],
                     doGenerateSubmoduleConfigurations: false,
                     submoduleCfg: []
                 ])
                 
                 // Verificar el contenido del directorio
-                bat 'dir /w'
+                echo '=== CONTENIDO DEL DIRECTORIO ==='
+                bat 'dir /s /b /a'
+                
+                // Verificar el estado de git
+                echo '=== ESTADO DE GIT ==='
+                bat 'git status'
+                bat 'git branch -a'
+                bat 'git log -1 --oneline'
             }
         }
         
